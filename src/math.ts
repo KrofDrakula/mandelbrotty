@@ -23,3 +23,30 @@ export const map = (a: number, b: number, c: number, d: number) => {
   const s = (d - c) / (b - a);
   return (x: number) => (x - a) * s + c;
 };
+
+export const clamp = (a: number, b: number) => (x: number) =>
+  Math.max(a, Math.min(b, x));
+
+export interface Block {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export const blocks = function* (
+  width: number,
+  height: number,
+  size: number
+): Generator<Block> {
+  for (let y = 0; y < height; y += size) {
+    for (let x = 0; x < width; x += size) {
+      yield {
+        left: x,
+        top: y,
+        width: Math.min(width - 1, x + size) - x,
+        height: Math.min(height - 1, y + size) - y,
+      };
+    }
+  }
+};

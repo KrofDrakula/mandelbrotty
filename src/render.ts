@@ -1,37 +1,67 @@
-import { mandelbrot, map, Cmpx } from "./math";
+import { Block, blocks, Cmpx, map } from "./math";
+import {
+  MessageType,
+  RenderMessage,
+  ResponseType,
+  WorkerResponse,
+} from "./messages";
+import RenderWorker from "./worker?worker";
 
-const colors = [
-  0x00429d, 0x325da9, 0x4e78b5, 0x6694c1, 0x80b1cc, 0x9dced6, 0xc0eade,
-  0xffffe0, 0xffdac4, 0xffb3a7, 0xfb8a8c, 0xeb6574, 0xd5405e, 0xb81b4a,
-  0x93003a,
-] as const;
+let msgId = 0;
+let workerId = 0;
 
-const mapIterationToColor = (iter: number) => colors[iter % colors.length];
+const requests = new Map<number, Block>();
 
 export const drawMandelbrot = async (
   canvas: HTMLCanvasElement,
   topLeft: Cmpx,
   bottomRight: Cmpx,
   limit: number
-) => {
-  const ctx = canvas.getContext("2d")!;
-  const buffer = ctx.createImageData(canvas.width, canvas.height);
-  const { data } = buffer;
-  const xToI = map(0, canvas.width - 1, topLeft[0], bottomRight[0]);
-  const yToJ = map(0, canvas.height - 1, topLeft[1], bottomRight[1]);
-  for (let y = 0; y < canvas.height; y++) {
-    const row = y * canvas.width * 4;
-    for (let x = 0; x < canvas.width; x++) {
-      const idx = row + x * 4;
-      const i = xToI(x);
-      const j = yToJ(y);
-      const [iter] = mandelbrot([i, j], limit);
-      const value = mapIterationToColor(iter);
-      data[idx] = value & 0xff;
-      data[idx + 1] = (value >> 8) & 0xff;
-      data[idx + 2] = (value >> 16) & 0xff;
-      data[idx + 3] = 0xff;
+) =>
+  new Promise<void>(async (resolve) => {
+    const workers: Worker[] = [];
+    for (let i = 0; i < navigator.hardwareConcurrency; i++)
+      workers.push(new RenderWorker());
+
+    const ctx = canvas.getContext("2d")!;
+
+    const onMessage = (ev: MessageEvent<WorkerResponse>) => {
+      if (ev.data.type == ResponseType.OK) {
+        const block = requests.get(ev.data.id)!;
+        const imgData = new ImageData(block.width, block.height);
+        imgData.data.set(ev.data.data);
+        ctx.putImageData(imgData, block.left, block.top);
+        requests.delete(ev.data.id);
+      }
+      if (requests.size == 0) {
+        resolve();
+        workers.forEach((w) => {
+          w.removeEventListener("message", onMessage);
+          w.terminate();
+        });
+      }
+    };
+
+    workers.forEach((w) => w.addEventListener("message", onMessage));
+
+    const xToI = map(0, canvas.width - 1, topLeft[0], bottomRight[0]);
+    const yToJ = map(0, canvas.height - 1, topLeft[1], bottomRight[1]);
+
+    for (const block of blocks(canvas.width, canvas.height, 64)) {
+      requests.set(msgId, block);
+      const from = [xToI(block.left), yToJ(block.top)];
+      const to = [
+        xToI(block.left + block.width),
+        yToJ(block.top + block.height),
+      ];
+      workers[workerId++ % workers.length].postMessage({
+        id: msgId,
+        type: MessageType.Render,
+        bounds: [from, to],
+        limit,
+        size: [block.width, block.height],
+      } as RenderMessage);
+
+      msgId++;
     }
-  }
-  ctx.putImageData(buffer, 0, 0);
-};
+  });
