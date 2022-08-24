@@ -10,6 +10,8 @@ import RenderWorker from "./worker?worker";
 let msgId = 0;
 let workerId = 0;
 
+const blockSize = 128;
+
 const requests = new Map<number, Block>();
 
 export const drawMandelbrot = async (
@@ -47,7 +49,7 @@ export const drawMandelbrot = async (
     const xToI = map(0, canvas.width - 1, topLeft[0], bottomRight[0]);
     const yToJ = map(0, canvas.height - 1, topLeft[1], bottomRight[1]);
 
-    for (const block of blocks(canvas.width, canvas.height, 64)) {
+    for (const block of blocks(canvas.width, canvas.height, blockSize)) {
       requests.set(msgId, block);
       const from = [xToI(block.left), yToJ(block.top)];
       const to = [
