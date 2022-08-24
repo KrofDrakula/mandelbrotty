@@ -1,10 +1,16 @@
 export type Cmpx = [number, number];
 
+const withinBulb = ([x, y]: Cmpx): boolean => {
+  const q = (x - 0.25) * (x - 0.25) + y * y;
+  return q * (q + (x - 0.25)) <= y * y * 0.25;
+};
+
 /**
  * Z(n+1) = Z(n)^2 + C
  * @see https://en.wikipedia.org/wiki/Mandelbrot_set
  */
 export const mandelbrot = (C: Cmpx, limit: number) => {
+  if (withinBulb(C)) return limit;
   let i = 0;
   let Z = [0, 0];
   while (++i < limit && Z[0] * Z[0] + Z[1] * Z[1] < 4) {
@@ -13,7 +19,7 @@ export const mandelbrot = (C: Cmpx, limit: number) => {
     Z[0] = a * a - b * b + C[0];
     Z[1] = 2 * a * b + C[1];
   }
-  return [i, Z] as const;
+  return i;
 };
 
 /**

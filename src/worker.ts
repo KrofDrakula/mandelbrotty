@@ -36,7 +36,7 @@ const onRender = (data: RenderMessage) => {
       const idx = row + x * 4;
       const i = xToI(x);
       const j = yToJ(y);
-      const [iter] = mandelbrot([i, j], data.limit);
+      const iter = mandelbrot([i, j], data.limit);
       const value = mapIterationToColor(iter);
       view[idx] = value & 0xff;
       view[idx + 1] = (value >> 8) & 0xff;
