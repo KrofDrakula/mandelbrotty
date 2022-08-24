@@ -32,7 +32,7 @@ export enum ResponseType {
 export interface ACKMessage {
   type: ResponseType.OK;
   id: number;
-  data: Uint8ClampedArray;
+  data: ArrayBuffer;
 }
 
 export interface ErrorMessage {

@@ -15,6 +15,17 @@ const colors = [
 
 const mapIterationToColor = (iter: number) => colors[iter % colors.length];
 
+const reply = (id: number, data: Uint8ClampedArray) =>
+  postMessage(
+    {
+      type: ResponseType.OK,
+      id,
+      data,
+    } as ACKMessage,
+    // @ts-ignore
+    [data.buffer]
+  );
+
 const onRender = (data: RenderMessage) => {
   const view = new Uint8ClampedArray(data.size[0] * data.size[1] * 4);
   const xToI = map(0, data.size[0], data.bounds[0][0], data.bounds[1][0]);
@@ -33,11 +44,7 @@ const onRender = (data: RenderMessage) => {
       view[idx + 3] = 0xff;
     }
   }
-  postMessage({
-    type: ResponseType.OK,
-    id: data.id,
-    data: view,
-  } as ACKMessage);
+  reply(data.id, view);
 };
 
 self.addEventListener("message", (ev: MessageEvent<WorkerMessage>) => {
