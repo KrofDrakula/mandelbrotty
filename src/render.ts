@@ -27,13 +27,13 @@ export const drawMandelbrot = async (
 
     const ctx = canvas.getContext("2d")!;
 
-    const onMessage = (ev: MessageEvent<WorkerResponse>) => {
-      if (ev.data.type == ResponseType.OK) {
-        const block = requests.get(ev.data.id)!;
+    const onMessage = ({ data }: MessageEvent<WorkerResponse>) => {
+      if (data.type == ResponseType.OK) {
+        const block = requests.get(data.id)!;
         const imgData = new ImageData(block.width, block.height);
-        imgData.data.set(ev.data.data);
+        imgData.data.set(data.data);
         ctx.putImageData(imgData, block.left, block.top);
-        requests.delete(ev.data.id);
+        requests.delete(data.id);
       }
       if (requests.size == 0) {
         resolve();
