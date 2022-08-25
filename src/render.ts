@@ -30,8 +30,7 @@ export const drawMandelbrot = async (
     const onMessage = ({ data }: MessageEvent<WorkerResponse>) => {
       if (data.type == ResponseType.OK) {
         const block = requests.get(data.id)!;
-        const imgData = new ImageData(block.width, block.height);
-        imgData.data.set(data.data);
+        const imgData = new ImageData(data.data, block.width, block.height);
         ctx.putImageData(imgData, block.left, block.top);
         requests.delete(data.id);
       }
